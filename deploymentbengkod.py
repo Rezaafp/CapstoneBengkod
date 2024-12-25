@@ -7,13 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/1lqsEPbV0hoxvn_2-hKaBQjuSDg7XTcWO
 """
 
-pip install pandas
-pip install numpy
-pip install matplotlib
-pip install seaborn
-pip install sklearn
-pip install pyngrok
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
