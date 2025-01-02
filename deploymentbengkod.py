@@ -33,6 +33,56 @@ water_potability_df.fillna(water_potability_df.mean(), inplace=True)
 st.write("## Data Frame")
 st.dataframe(water_potability_df)
 
+# --- Input ---
+st.title("Prediksi Kualitas Air")
+st.write("Pilih Model yang akan digunakan untuk memprediksi kelayakan air minum")
+# Muat semua model
+models = {
+    "Naive Bayes": pickle.load(open("model_naive_bayes.pkl", "rb")),  # Ganti dengan nama file model Naive Bayes
+    "Decision Tree": pickle.load(open("model_decision_tree.pkl", "rb")),  # Ganti dengan nama file model Decision Tree
+    "Random Forest": pickle.load(open("model_random_forest.pkl", "rb"))  # Ganti dengan nama file model Random Forest
+}
+
+# Pilihan model
+selected_model = st.selectbox("Pilih Model", list(models.keys()))
+
+st.write("Masukkan nilai untuk masing-masing fitur di bawah ini lalu klik tombol prediksi untuk mengetahui apakah air layak diminum")
+
+# Input fitur
+ph = st.number_input("pH", min_value=0.0, max_value=14.0, value=7.0)
+Hardness = st.number_input("Hardness", min_value=0.0, max_value=300.0, value=150.0)
+Solids = st.number_input("Solids", min_value=0.0, max_value=60000.0, value=20000.0)
+Chloramines = st.number_input("Chloramines", min_value=0.0, max_value=15.0, value=7.0)
+Sulfate = st.number_input("Sulfate", min_value=0.0, max_value=500.0, value=250.0)
+Conductivity = st.number_input("Conductivity", min_value=0.0, max_value=800.0, value=400.0)
+Organic_carbon = st.number_input("Organic_carbon", min_value=0.0, max_value=30.0, value=15.0)
+Trihalomethanes = st.number_input("Trihalomethanes", min_value=0.0, max_value=120.0, value=60.0)
+Turbidity = st.number_input("Turbidity", min_value=0.0, max_value=7.0, value=3.5)
+
+# Tombol prediksi
+if st.button("Prediksi"):
+    # Buat DataFrame dari input fitur
+    input_data = pd.DataFrame({
+        'ph': [ph],
+        'Hardness': [Hardness],
+        'Solids': [Solids],
+        'Chloramines': [Chloramines],
+        'Sulfate': [Sulfate],
+        'Conductivity': [Conductivity],
+        'Organic_carbon': [Organic_carbon],
+        'Trihalomethanes': [Trihalomethanes],
+        'Turbidity': [Turbidity]
+    })
+
+    # Prediksi
+    prediction = models[selected_model].predict(input_data)[0]
+
+    # Tampilkan hasil prediksi
+    if prediction == 1:
+        st.success("Air layak diminum")
+    else:
+        st.error("Air tidak layak diminum")
+
 # Membuat histogram
 st.write("## Histogram")
 numerical_features = water_potability_df.select_dtypes(include=['int64', 'float64']).columns
@@ -150,53 +200,3 @@ autolabel(rects1)
 autolabel(rects2)
 
 st.pyplot(fig)  # Menampilkan visualisasi di Streamlit
-
-# --- Input ---
-st.title("Prediksi Kualitas Air")
-st.write("Pilih Model yang akan digunakan untuk memprediksi kelayakan air minum")
-# Muat semua model
-models = {
-    "Naive Bayes": pickle.load(open("model_naive_bayes.pkl", "rb")),  # Ganti dengan nama file model Naive Bayes
-    "Decision Tree": pickle.load(open("model_decision_tree.pkl", "rb")),  # Ganti dengan nama file model Decision Tree
-    "Random Forest": pickle.load(open("model_random_forest.pkl", "rb"))  # Ganti dengan nama file model Random Forest
-}
-
-# Pilihan model
-selected_model = st.selectbox("Pilih Model", list(models.keys()))
-
-st.write("Masukkan nilai untuk masing-masing fitur di bawah ini lalu klik tombol prediksi untuk mengetahui apakah air layak diminum")
-
-# Input fitur
-ph = st.number_input("pH", min_value=0.0, max_value=14.0, value=7.0)
-Hardness = st.number_input("Hardness", min_value=0.0, max_value=300.0, value=150.0)
-Solids = st.number_input("Solids", min_value=0.0, max_value=60000.0, value=20000.0)
-Chloramines = st.number_input("Chloramines", min_value=0.0, max_value=15.0, value=7.0)
-Sulfate = st.number_input("Sulfate", min_value=0.0, max_value=500.0, value=250.0)
-Conductivity = st.number_input("Conductivity", min_value=0.0, max_value=800.0, value=400.0)
-Organic_carbon = st.number_input("Organic_carbon", min_value=0.0, max_value=30.0, value=15.0)
-Trihalomethanes = st.number_input("Trihalomethanes", min_value=0.0, max_value=120.0, value=60.0)
-Turbidity = st.number_input("Turbidity", min_value=0.0, max_value=7.0, value=3.5)
-
-# Tombol prediksi
-if st.button("Prediksi"):
-    # Buat DataFrame dari input fitur
-    input_data = pd.DataFrame({
-        'ph': [ph],
-        'Hardness': [Hardness],
-        'Solids': [Solids],
-        'Chloramines': [Chloramines],
-        'Sulfate': [Sulfate],
-        'Conductivity': [Conductivity],
-        'Organic_carbon': [Organic_carbon],
-        'Trihalomethanes': [Trihalomethanes],
-        'Turbidity': [Turbidity]
-    })
-
-    # Prediksi
-    prediction = models[selected_model].predict(input_data)[0]
-
-    # Tampilkan hasil prediksi
-    if prediction == 1:
-        st.success("Air layak diminum")
-    else:
-        st.error("Air tidak layak diminum")
