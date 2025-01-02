@@ -87,6 +87,32 @@ prediction_nb = models[0].predict(input_data)[0]  # Naive Bayes
 prediction_dt = models[1].predict(input_data)[0]  # Decision Tree
 prediction_rf = models[2].predict(input_data)[0]  # Random Forest
 
+# --- Output ---
+st.subheader("Hasil Prediksi:")
+st.write(f"Naive Bayes: {prediction_nb}")
+st.write(f"Decision Tree: {prediction_dt}")
+st.write(f"Random Forest: {prediction_rf}")
+
+
+# --- Evaluasi Model (opsional) ---
+if st.button('Evaluasi Model'):
+    y_pred_nb = models[0].predict(X_test)
+    y_pred_dt = models[1].predict(X_test)
+    y_pred_rf = models[2].predict(X_test)
+
+    st.write("## Evaluasi Model")
+    st.write("### Naive Bayes")
+    st.write(classification_report(y_test, y_pred_nb))
+    # # ... (visualisasi confusion matrix, dll.) ...
+
+    st.write("### Decision Tree")
+    st.write(classification_report(y_test, y_pred_dt))
+    # # ... (visualisasi confusion matrix, dll.) ...
+
+    st.write("### Random Forest")
+    st.write(classification_report(y_test, y_pred_rf))
+    # # ... (visualisasi confusion matrix, dll.) ...
+
 
 # Inisialisasi StandardScaler
 scaler = StandardScaler()
