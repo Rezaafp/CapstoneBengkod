@@ -21,11 +21,22 @@ import streamlit as st
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score,recall_score,f1_score,precision_score,roc_auc_score,confusion_matrix,precision_score
+import pickle  # Import library pickle
+import os  # Import library os
 
 water_potability_df = pd.read_csv('https://drive.google.com/uc?id=1cWZzfVkEw3xMcIanmtb-xi-7nVBKjMRl')
 # ... (kode untuk memuat model dan data) ...
 # Mengisi kolom numerik dengan mean
 water_potability_df.fillna(water_potability_df.mean(), inplace=True)
+
+# --- Fungsi untuk melatih dan menyimpan model ---
+def train_and_save_model(X_train, y_train, model_name, model):
+    """Melatih model dan menyimpannya ke file."""
+    model.fit(X_train, y_train)
+    model_filename = f"{model_name}_model.pkl"
+    with open(model_filename, 'wb') as f:
+        pickle.dump(model, f)
+    return model_filename
 
 # --- Load Model ---
 # (Pastikan model-model telah disimpan sebelumnya)
@@ -33,6 +44,25 @@ clean_classifier_nb = GaussianNB()  # Load model Naive Bayes
 clean_classifier_dt = DecisionTreeClassifier(random_state=42)  # Load model Decision Tree
 clean_classifier_rf = RandomForestClassifier(n_estimators=100, random_state=42)  # Load model Random Forest
 
+# --- Pisahkan Fitur dan Target ---
+X = water_potability_df[['ph', 'Hardness', 'Solids', 'Chloramines', 'Sulfate', 'Conductivity', 'Organic_carbon', 'Trihalomethanes', 'Turbidity']]
+y = water_potability_df['Potability']
+
+# --- Bagi data menjadi data training dan testing ---
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)  # Bagi data dengan rasio 80:20
+
+# --- Load atau Train Model ---
+model_filenames = ['naive_bayes_model.pkl', 'decision_tree_model.pkl', 'random_forest_model.pkl']
+models = [clean_classifier_nb, clean_classifier_dt, clean_classifier_rf]
+
+for i, model_filename in enumerate(model_filenames):
+    if not os.path.exists(model_filename):
+        print(f"Melatih dan menyimpan model {model_filename}...")
+        train_and_save_model(X_train, y_train, model_filenames[i][:-4], models[i])  # Latih dan simpan model
+    else:
+        print(f"Memuat model {model_filename}...")
+        with open(model_filename, 'rb') as f:
+            models[i] = pickle.load(f)  # Muat model yang sudah ada
 
 # --- Input ---
 st.title("Prediksi Kualitas Air")
@@ -52,24 +82,30 @@ turbidity = st.number_input("Turbidity", min_value=0.0, value=5.0)
 input_data = pd.DataFrame([[ph, hardness, solids, chloramines, sulfate, conductivity, organic_carbon, trihalomethanes, turbidity]],
                          columns=['ph', 'Hardness', 'Solids', 'Chloramines', 'Sulfate', 'Conductivity', 'Organic_carbon', 'Trihalomethanes', 'Turbidity'])
 
-prediction_nb = clean_classifier_nb.predict(input_data)[0]
-prediction_dt = clean_classifier_dt.predict(input_data)[0]
-prediction_rf = clean_classifier_rf.predict(input_data)[0]
+# Prediksi menggunakan model yang telah dimuat
+prediction_nb = models[0].predict(input_data)[0]  # Naive Bayes
+prediction_dt = models[1].predict(input_data)[0]  # Decision Tree
+prediction_rf = models[2].predict(input_data)[0]  # Random Forest
+
 
 # Inisialisasi StandardScaler
 scaler = StandardScaler()
 
 # Melakukan fit dan transform pada data training
-X_train_scaled = scaler.fit_transform(input_data)
+X_train_scaled = scaler.fit_transform(X_train)
 
 # Melakukan transform pada data testing (menggunakan parameter yang dipelajari dari data training)
-X_test_scaled = scaler.transform(input_data)
+X_test_scaled = scaler.transform(X_test)
 
 # --- Sebelum Normalisasi ---
 # Akurasi model sebelum normalisasi (sudah dihitung sebelumnya)
-accuracy_nb = round(accuracy_score(input_data, prediction_nb), 3)
-accuracy_dt = round(accuracy_score(input_data, prediction_dt), 3)
-accuracy_rf = round(accuracy_score(input_data, prediction_rf), 3)
+y_pred_nb = models[0].predict(X_test)
+y_pred_dt = models[1].predict(X_test)
+y_pred_rf = models[2].predict(X_test)
+
+accuracy_nb = round(accuracy_score(y_test, y_pred_nb), 3)
+accuracy_dt = round(accuracy_score(y_test, y_pred_dt), 3)
+accuracy_rf = round(accuracy_score(y_test, y_pred_rf), 3)
 
 # --- Setelah Normalisasi ---
 # Prediksi model setelah normalisasi (sudah dihitung sebelumnya)
@@ -78,9 +114,9 @@ y_pred_dtN = clean_classifier_dt.predict(X_test_scaled)
 y_pred_rfN = clean_classifier_rf.predict(X_test_scaled)
 
 # Akurasi model setelah normalisasi
-accuracy_nbN = round(accuracy_score(input_data, y_pred_nbN), 3)
-accuracy_dtN = round(accuracy_score(input_data, y_pred_dtN), 3)
-accuracy_rfN = round(accuracy_score(input_data, y_pred_rfN), 3)
+accuracy_nbN = round(accuracy_score(y_test, y_pred_nbN), 3)
+accuracy_dtN = round(accuracy_score(y_test, y_pred_dtN), 3)
+accuracy_rfN = round(accuracy_score(y_test, y_pred_rfN), 3)
 
 # --- Perbandingan Akurasi ---
 # Membuat DataFrame untuk perbandingan
@@ -154,22 +190,22 @@ model_choice = st.sidebar.selectbox("Pilih Model:", ['Naive Bayes', 'Decision Tr
 if model_choice == 'Naive Bayes':
     st.header("Naive Bayes")
     # ... (kode untuk menampilkan grafik dan akurasi Naive Bayes) ...
-    plot_confusion_matrix(input_data, prediction_nb, "Confusion Matrix - Naive Bayes (Sebelum Normalisasi)")
-    plot_confusion_matrix(input_data, y_pred_nbN, "Confusion Matrix - Naive Bayes (Setelah Normalisasi)")
-    evaluation(input_data,prediction_nb)
+    plot_confusion_matrix(y_test, prediction_nb, "Confusion Matrix - Naive Bayes (Sebelum Normalisasi)")
+    plot_confusion_matrix(y_test, y_pred_nbN, "Confusion Matrix - Naive Bayes (Setelah Normalisasi)")
+    evaluation(y_test,prediction_nb)
     # ...
 elif model_choice == 'Decision Tree':
     st.header("Decision Tree")
     # ... (kode untuk menampilkan grafik dan akurasi Decision Tree) ...
-    plot_confusion_matrix(input_data, prediction_dt, "Confusion Matrix - Naive Bayes (Sebelum Normalisasi)")
-    plot_confusion_matrix(input_data, y_pred_dtN, "Confusion Matrix - Naive Bayes (Setelah Normalisasi)")
-    evaluation(input_data,prediction_dt)
+    plot_confusion_matrix(y_test, prediction_dt, "Confusion Matrix - Decision Tree (Sebelum Normalisasi)")
+    plot_confusion_matrix(y_test, y_pred_dtN, "Confusion Matrix - Decision Tree (Setelah Normalisasi)")
+    evaluation(y_test,prediction_dt)
 elif model_choice == 'Random Forest':
     st.header("Random Forest")
     # ... (kode untuk menampilkan grafik dan akurasi Random Forest) ...
-    plot_confusion_matrix(input_data, prediction_rf, "Confusion Matrix - Naive Bayes (Sebelum Normalisasi)")
-    plot_confusion_matrix(input_data, y_pred_rfN, "Confusion Matrix - Naive Bayes (Setelah Normalisasi)")
-    evaluation(input_data,prediction_rf)
+    plot_confusion_matrix(y_test, prediction_rf, "Confusion Matrix - Random Forest (Sebelum Normalisasi)")
+    plot_confusion_matrix(y_test, y_pred_rfN, "Confusion Matrix - Random Forest (Setelah Normalisasi)")
+    evaluation(y_test,prediction_rf)
 
 # --- Perbandingan Akurasi ---
 st.header("Perbandingan Akurasi Model")
